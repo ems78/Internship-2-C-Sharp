@@ -33,7 +33,16 @@ var df = new Dictionary<string, (string position, int rating)>();
 var fw = new Dictionary<string, (string position, int rating)>();
 var ekipa = new Dictionary<string, (string position, int rating)>();
 var rezultatiEkipe = new List<(int rezEkipe, int rezProtivnika)>();
-var rezultatiOstali = new List<(int, int)>();
+var rezultatiOstali = new List<(string firstTeam, string secondTeam, int resultFirstTeam, int resultSecondTeam)>();
+var protivnici = new List<(string fristTeam, string secondTeam)>
+{
+    ("a", "b"),
+    ("c", "d"),
+    ("e", "f"),
+    ("g", "h"),
+    ("i", "j"),
+};
+
 
 void PrintLine()
 {
@@ -72,7 +81,7 @@ void ReturnToIzbornik()
     PrintLine();
 
     int back;
-    while ((back = UnosIzbora("broj za izbor")) is not 0)
+    while ((back = UnosIzbora("0 za povratak na izbornik")) is not 0)
     {
         Console.WriteLine("Opcija ne postoji!");
     }
@@ -101,7 +110,7 @@ void Ispis2(IOrderedEnumerable<KeyValuePair<string, (string position, int rating
 
 
 // metoda za razvrstavanje igrača u liste za pozicije
-void organisePlayers(Dictionary<string, (string position, int rating)> playersOnPosition, string positionName, bool printPlayers)
+void organisePlayers(Dictionary<string, (string position, int rating)> playersOnPosition, string positionName, bool printPlayers, int numberOfPlayersToPrint)
 {
     playersOnPosition.Clear();
     foreach (var player in playersInfo.Keys)
@@ -116,9 +125,15 @@ void organisePlayers(Dictionary<string, (string position, int rating)> playersOn
 
     if (printPlayers)
     {
+        int i = numberOfPlayersToPrint;
         foreach (var player in playersOnPosition)
         {
-            Console.WriteLine($"{player.Key}\t{player.Value.rating}");
+            if (i is 0)
+            {
+                break;
+            }
+            Console.WriteLine($"{player.Value.position}  -  {player.Key}\t{player.Value.rating}");
+            i--;
         }
     }
 }
@@ -153,8 +168,7 @@ void CalculateNewRating(Dictionary<string, (string position, int rating)> listOf
 // main izbornik
 void Izbornik()
 {
-    bool repeat = true;
-    do
+    while (true)
     {
         Console.Clear();
         Console.WriteLine("1 - Odradi trening\n2 - Odigraj utakmicu\n3 - Statistika\n4 - Kontrola igraca\n0 - Izlaz iz aplikacije\n\n");
@@ -164,7 +178,6 @@ void Izbornik()
                 if (AreYouSure("odraditi trening"))
                 {
                     OdradiTrening();
-                    repeat = false;
                     break;
                 }
                 break;
@@ -173,19 +186,16 @@ void Izbornik()
                 if (AreYouSure("odigrati utakmicu"))
                 {
                     OdigrajUtakmicu();
-                    repeat = false;
                     break;
                 }
                 break;
 
             case 3: // Statistika
-                repeat = false;
                 Statistika();
                 break;
 
             case 4:  // Kontrola igraca
                 KontrolaIgraca();
-                repeat = false;
                 break;
 
             case 0:
@@ -195,8 +205,7 @@ void Izbornik()
             default:
                 break;
         }
-    } while (repeat);
-
+    }
 }
 
 
@@ -210,7 +219,7 @@ void OdradiTrening()
 
 void CheckPlayers(Dictionary<string, (string position, int rating)> playersOnPosition, int minNumber, string positionName)
 {
-    organisePlayers(playersOnPosition!, positionName, false);
+    organisePlayers(playersOnPosition!, positionName, false, 0);
     if (playersOnPosition!.Count < minNumber)
     {
         Console.WriteLine($"Nema dovoljno igrača na poziciji {positionName}!");
@@ -219,6 +228,21 @@ void CheckPlayers(Dictionary<string, (string position, int rating)> playersOnPos
             ReturnToIzbornik();
         }
     }
+}
+
+void UpdatePlayerRating(Dictionary<string, (string position, int rating)> playerDict)
+{
+    foreach (var player in playerDict.Keys)
+    {
+        playersInfo[player] = (playerDict[player].position, playerDict[player].rating);
+    }
+}
+
+
+(int firstTeam, int secondTeam) GenerateRandomResults()
+{
+    Random randomInt = new Random();
+    return (randomInt.Next(0, 7), randomInt.Next(0, 7));
 }
 
 
@@ -231,9 +255,9 @@ void OdigrajUtakmicu()
     }
 
     CheckPlayers(gk!, 1, "GK");
-    CheckPlayers(df!, 1, "DF");
-    CheckPlayers(mf!, 1, "MF");
-    CheckPlayers(fw!, 1, "FW");
+    CheckPlayers(df!, 4, "DF");
+    CheckPlayers(mf!, 3, "MF");
+    CheckPlayers(fw!, 3, "FW");
 
     ekipa!.Add(gk!.ElementAt(1).Key, gk!.ElementAt(1).Value);
 
@@ -248,39 +272,46 @@ void OdigrajUtakmicu()
         ekipa.Add(fw!.ElementAt(i).Key, fw!.ElementAt(i).Value);
     }
 
-    Random randomInt = new Random();
-    int golEkipa = randomInt.Next(0, 7);
-    int golProtivnici = randomInt.Next(0, 7);
+    (int golEkipa, int golProtivnici) golovi = GenerateRandomResults();
 
     Dictionary<string, (string position, int rating)> strijelci = new Dictionary<string, (string position, int rating)>();
-    while (strijelci.Count < golEkipa)
+    if (golovi.golEkipa > 0)
     {
-        int pozicijaStrijelca = randomInt.Next(0, fw!.Count - 1);
-        if (strijelci.ContainsKey(fw!.ElementAt(pozicijaStrijelca).Key))
+        Random randomInt = new Random();
+        while (strijelci.Count < golovi.golEkipa)
         {
-            continue;
+            int pozicijaStrijelca = randomInt.Next(0, fw!.Count - 1);
+            if (strijelci.ContainsKey(fw!.ElementAt(pozicijaStrijelca).Key))
+            {
+                continue;
+            }
+            strijelci.Add(fw!.ElementAt(pozicijaStrijelca).Key, fw!.ElementAt(pozicijaStrijelca).Value);
         }
-        strijelci.Add(fw!.ElementAt(pozicijaStrijelca).Key, fw!.ElementAt(pozicijaStrijelca).Value);
+        CalculateNewRating(strijelci, 5, 5, false);
+        UpdatePlayerRating(strijelci);
     }
 
-    CalculateNewRating(strijelci, 5, 5, false);
-
-    if (golEkipa > golProtivnici)
+    if (golovi.golEkipa > golovi.golProtivnici)
         CalculateNewRating(ekipa, 2, 2, false);
     else
         CalculateNewRating(ekipa, -2, -2, false);
 
-    string rezultat = $"{golEkipa}:{golProtivnici}";
+    UpdatePlayerRating(ekipa);
+    rezultatiEkipe!.Add(golovi);
 
+    string rezultat = $"{golovi.golEkipa}:{golovi.golProtivnici}";
     Console.Clear();
     Console.WriteLine("Rezultati utakmice:");
     PrintLine();
-    Console.WriteLine(rezultat);
-
+    Console.WriteLine($"{rezultat}\n\nOstali rezultati kola:\n");
+    for (int i = 0; i < 5; i++)
+    {
+        (string firstTeam, string secondTeam) p = protivnici![i];
+        var rezultatiKolo = GenerateRandomResults();
+        rezultatiOstali!.Add((p.firstTeam, p.secondTeam, rezultatiKolo.firstTeam, rezultatiKolo.secondTeam));
+        Console.WriteLine($"{p.firstTeam} - {p.secondTeam}\t{rezultatiKolo.firstTeam}:{rezultatiKolo.secondTeam}\n");
+    }
     ReturnToIzbornik();
-
-    // izlistat sve rezultate trenutnog kola skupine (6 utakmica)               // <---------------------------------------------------------
-
 }
 
 
@@ -296,13 +327,12 @@ void Statistika()
         Console.WriteLine("Krivi unos!");
     }
 
-    bool repeat = true;
-    do
+    while (true)
     {
         Console.Clear();
-        Console.WriteLine("Ispis svih igrača\n\n1 - Ispis onako kako su spremljeni\n2 - Ispis po rating uzlazno\n3 - Ispis po ratingu silazno\n" +
-            "4 - Ispis igrača po imenu i prezimenu\n5 - Ispis igrača po ratingu\n6 - Ispis igrača po poziciji\n7 - Ispis trenutno prvih 11 igrača\n" +
-            "8 - Ispis strijelaca i koliko golova imaju\n9 - Ispis svih rezultata ekipe\n10 - Ispis rezultat svih ekipa\n11 - Ispis tablice grupe\n12 - Povratak na izbornik");
+        Console.WriteLine("1 - Ispis onako kako su spremljeni\n2 - Ispis po rating uzlazno\n3 - Ispis po ratingu silazno\n4 - Ispis igrača po imenu i prezimenu" +
+            "\n5 - Ispis igrača po ratingu\n6 - Ispis igrača po poziciji\n7 - Ispis trenutno prvih 11 igrača\n8 - Ispis strijelaca i koliko golova imaju" +
+            "\n9 - Ispis svih rezultata ekipe\n10 - Ispis rezultat svih ekipa\n11 - Ispis tablice grupe\n12 - Povratak na izbornik");
 
         switch (UnosIzbora("broj za izbor"))
         {
@@ -337,7 +367,7 @@ void Statistika()
                 ReturnToIzbornik();
                 break;
 
-            case 5: // po ratingu??                                                <-------------------------------------  REFACTOR!!
+            case 5: // po ratingu??                                                <--------------------  REFACTOR!!
                 Console.Clear();
                 Console.WriteLine("Ispis igrača po ratingu:");
                 PrintLine();
@@ -366,45 +396,29 @@ void Statistika()
                 PrintLine();
 
                 Console.WriteLine("GK igrači:\nIme\t\tRating\n");
-                organisePlayers(gk!, "GK", true);
+                organisePlayers(gk!, "GK", true, gk!.Count);
 
                 Console.WriteLine("\n\nMF igrači:\nIme\t\tRating\n");
-                organisePlayers(mf!, "MF", true);
+                organisePlayers(mf!, "MF", true, mf!.Count);
 
                 Console.WriteLine("\n\nDF igrači:\nIme\t\tRating\n");
-                organisePlayers(df!, "DF", true);
+                organisePlayers(df!, "DF", true, df!.Count);
 
                 Console.WriteLine("\n\nFW igrači:\nIme\t\tRating\n");
-                organisePlayers(fw!, "FW", true);
+                organisePlayers(fw!, "FW", true, fw!.Count);
 
                 ReturnToIzbornik();
                 break;
 
             case 7:  // top 11 po pozicijama
                 Console.Clear();
-                Console.WriteLine("Ispis top 11 igrača po pozicijama:");         // problem kad nema dovoljno ljudi
+                Console.WriteLine("Ispis top 11 igrača po pozicijama:");      
                 PrintLine();
 
-                organisePlayers(gk!, "GK", false);
-                Console.WriteLine($"GK - {gk!.ElementAt(0).Key}\t{gk!.ElementAt(0).Value.rating}");
-
-                organisePlayers(df!, "DF", false);
-                for (int i = 0; i < 4; i++)
-                {
-                    Console.WriteLine($"DF - {df!.ElementAt(i).Key}\t{df!.ElementAt(i).Value.rating}");
-                }
-
-                organisePlayers(mf!, "MF", false);
-                for (int i = 0; i < 3; i++)
-                {
-                    Console.WriteLine($"MF - {mf!.ElementAt(i).Key}\t{mf!.ElementAt(i).Value.rating}");
-                }
-
-                organisePlayers(fw!, "FW", false);
-                for (int i = 0; i < 3; i++)
-                {
-                    Console.WriteLine($"FW - {fw!.ElementAt(i).Key}\t{fw!.ElementAt(i).Value.rating}");
-                }
+                organisePlayers(gk!, "GK", true, 1);
+                organisePlayers(df!, "DF", true, 4);
+                organisePlayers(mf!, "MF", true, 3);
+                organisePlayers(fw!, "FW", true, 3);
 
                 ReturnToIzbornik();
                 break;
@@ -415,7 +429,7 @@ void Statistika()
                 PrintLine();
 
                 Random randomInt = new Random();
-                organisePlayers(fw!, "FW", false);
+                organisePlayers(fw!, "FW", false, 0);
                 foreach (var player in fw!)
                 {
                     int brojGolova = randomInt.Next(0, 300);
@@ -429,6 +443,17 @@ void Statistika()
 
                 Console.Clear();
                 Console.WriteLine("Ispis rezultata ekipe:");
+                PrintLine();
+
+                if (rezultatiEkipe!.Count > 0)
+                {
+                    foreach (var result in rezultatiEkipe)
+                    {
+                        Console.WriteLine($"{result.rezEkipe}:{result.rezProtivnika}\n");
+                    }
+                }
+                else
+                    Console.WriteLine("Nije još odigrana nijedna utakmica!");
 
                 ReturnToIzbornik();
                 break;
@@ -436,6 +461,17 @@ void Statistika()
             case 10: // rezultat svih ekipa ??                //     <-------------------------------------------------
                 Console.Clear();
                 Console.WriteLine("Ispis rezultata svih ekipa:");
+                PrintLine();
+
+                if (rezultatiOstali!.Count > 0)
+                {
+                    foreach (var result in rezultatiOstali)
+                    {
+                        Console.WriteLine($"{result.firstTeam} - {result.secondTeam}\t{result.resultFirstTeam}:{result.resultSecondTeam}\n");
+                    }
+                }
+                else
+                    Console.WriteLine("Nije još odigrana nijedna utakmica!");
 
                 ReturnToIzbornik();
                 break;
@@ -447,22 +483,21 @@ void Statistika()
                 ReturnToIzbornik();
                 break;
 
-            case 0:
-                ReturnToIzbornik();
+            case 12:
+                Izbornik();
                 break;
 
             default:
                 break;
         }
-    } while (repeat);
+    } 
 
 }
 
 
 void KontrolaIgraca()
 {
-    bool repeat = true;
-    do
+    while (true)
     {
         Console.Clear();
         Console.WriteLine("1 - Unos novog igrača\n2 - Brisanje igrača\n3 - Uređivanje igrača\n0 - Izlaz iz kontrole igrača");
@@ -524,7 +559,6 @@ void KontrolaIgraca()
                         playersInfo.Add(newPlayerName!, (newPlayerPosition!, newPlayerRating));
                     }
                 }
-                repeat = false;
                 break;
 
             case 2: // brisanje igraca      
@@ -561,7 +595,6 @@ void KontrolaIgraca()
                 {
                     playersInfo.Remove(playerToDelete!);
                 }
-                repeat = false;
                 break;
 
             case 3: // uredivanje igraca             
@@ -588,14 +621,12 @@ void KontrolaIgraca()
                     }
                 }
 
-                Console.Clear();
-                Console.WriteLine($"Uredi igrača {playerName}");
-                PrintLine();
-                Console.WriteLine("1 - Uredi ime i prezime igrača\n2 - Uredi poziciju igrača (GK, DF, MF ili FW)\n3 - Uredi rating igrača [1 - 100]\n0 - povratak na izbornik");
-
-                var repeat2 = true;
-                do
+                while (true)
                 {
+                    Console.Clear();
+                    Console.WriteLine($"Uredi igrača {playerName}");
+                    PrintLine();
+                    Console.WriteLine("1 - Uredi ime i prezime igrača\n2 - Uredi poziciju igrača (GK, DF, MF ili FW)\n3 - Uredi rating igrača [1 - 100]\n0 - povratak na izbornik");
                     switch (UnosIzbora("broj za izbor"))
                     {
                         case 1:
@@ -615,7 +646,6 @@ void KontrolaIgraca()
                                 playersInfo.Remove(playerName!);
                                 playersInfo.Add(newName!, temp);
                             }
-                            repeat2 = false;
                             break;
 
                         case 2: // uredi poziciju igrača
@@ -643,7 +673,6 @@ void KontrolaIgraca()
                                 var temp = (newPosition, playersInfo[playerName!].rating);
                                 playersInfo[playerName!] = temp!;
                             }
-                            repeat2 = false;
                             break;
 
                         case 3:  // uredi rating igrača
@@ -667,7 +696,6 @@ void KontrolaIgraca()
                                 var temp = (playersInfo[playerName!].position, newRating);
                                 playersInfo[playerName!] = temp;
                             }
-                            repeat2 = false;
                             break;
 
                         case 0:
@@ -681,20 +709,16 @@ void KontrolaIgraca()
                         default:
                             break;
                     }
-                } while (repeat2);
-                repeat = false;
-                break;
+                } 
 
             case 0:
                 Izbornik();
-                repeat = false;
                 break;
 
             default:
                 break;
         }
-    } while (repeat);
-    KontrolaIgraca();
+    } 
 }
 
 Izbornik();
