@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SvjetskoPrvenstvo
+﻿namespace SvjetskoPrvenstvo
 {
     public sealed class stringEqualityComparer : IEqualityComparer<string>
     {
@@ -14,7 +8,7 @@ namespace SvjetskoPrvenstvo
             if (ReferenceEquals(a, null)) return false;
             if (ReferenceEquals(b, null)) return false;
             if (a.GetType() != b.GetType()) return false;
-            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(a, b);
         }
         public int GetHashCode(string a)
         {

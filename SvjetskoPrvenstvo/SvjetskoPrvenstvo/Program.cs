@@ -1,5 +1,4 @@
 ﻿using SvjetskoPrvenstvo;
-using System.Collections;
 
 Dictionary<string, (string position, int rating)> playersInfo = new Dictionary<string, (string position, int rating)>(new stringEqualityComparer())
 {
@@ -32,14 +31,15 @@ var df = new Dictionary<string, (string position, int rating)>();
 var fw = new Dictionary<string, (string position, int rating)>();
 var ekipa = new Dictionary<string, (string position, int rating)>();
 var rezultatiEkipe = new List<(int rezEkipe, int rezProtivnika)>();
-var bodoviOstali = new Dictionary<string, (int bodovi, int golRazlika)>()
+
+var bodoviEkipa = new Dictionary<string, (int bodovi, int golRazlika)>()
 {
     {"Belgium", (0, 0)},       
     {"Canada", (0, 0)},
     {"Marocco", (0, 0)},
     {"Croatia", (0, 0)}
 };   
-var protivnici = new List<(bool odigrano, int kolo, string fristTeam, string secondTeam, int rezultatFitstTeam, int rezultatSecondTeam)> 
+var predodredeneUtakmice = new List<(bool odigrano, int kolo, string fristTeam, string secondTeam, int rezultatFitstTeam, int rezultatSecondTeam)> 
 {
     (false, 1,  "Marocco", "Croatia", 0, 0),
     (false, 1, "Canada", "Belgium", 0, 0),
@@ -117,7 +117,7 @@ void Ispis2(IOrderedEnumerable<KeyValuePair<string, (string position, int rating
 
 void CalculateNewRating(Dictionary<string, (string position, int rating)> listOfPlayers, int minValue, int maxValue, bool printResults)
 {
-    Random randomNum = new Random();
+    Random randomNum = new();
     foreach (var player in listOfPlayers)
     {
         float percentage = randomNum.Next(minValue, maxValue) / 100f;
@@ -142,22 +142,22 @@ void CalculateNewRating(Dictionary<string, (string position, int rating)> listOf
 
 
 // metoda za razvrstavanje igrača u liste za pozicije
-void organisePlayers(Dictionary<string, (string position, int rating)> playersOnPosition, string positionName, bool printPlayers, int numberOfPlayersToPrint)
+void organisePlayers(Dictionary<string, (string position, int rating)> groupedPlayers, string positionName, bool printPlayers, int numberOfPlayersToPrint)
 {
-    playersOnPosition.Clear();
+    groupedPlayers.Clear();
     foreach (var player in playersInfo.Keys)
     {
         if (playersInfo[player].position.Equals(positionName))
         {
-            playersOnPosition!.Add(player, playersInfo[player]);
+            groupedPlayers!.Add(player, playersInfo[player]);
         }
     }
-    var sortedOnPosition = from entry in playersOnPosition orderby entry.Value.rating descending select entry;
+    var sortedGroup = from entry in groupedPlayers orderby entry.Value.rating descending select entry;
 
     if (printPlayers)
     {
         int i = numberOfPlayersToPrint;
-        foreach (var player in playersOnPosition)
+        foreach (var player in sortedGroup)
         {
             if (i is 0)
             {
@@ -170,10 +170,10 @@ void organisePlayers(Dictionary<string, (string position, int rating)> playersOn
 }
 
 
-void CheckPlayers(Dictionary<string, (string position, int rating)> playersOnPosition, int minNumber, string positionName)
+void CheckPlayers(Dictionary<string, (string position, int rating)> groupedPlayers, int minNumber, string positionName)
 {
-    organisePlayers(playersOnPosition!, positionName, false, 0);
-    if (playersOnPosition!.Count < minNumber)
+    organisePlayers(groupedPlayers!, positionName, false, 0);
+    if (groupedPlayers!.Count < minNumber)
     {
         Console.WriteLine($"Nema dovoljno igrača na poziciji {positionName}!");
         if (AreYouSure("vratiti se na izbornik"))
@@ -194,37 +194,39 @@ void UpdatePlayerRating(Dictionary<string, (string position, int rating)> player
 
 (int firstTeam, int secondTeam) GenerateRandomResults()
 {
-    Random randomInt = new Random();
-    return (randomInt.Next(0, 4), randomInt.Next(0, 4));  // mozda nije najbolje rjesenje
+    Random randomInt = new();
+    return (randomInt.Next(0, 5), randomInt.Next(0, 5));  // mozda nije najbolje rjesenje
 }
 
 
 void ostaliRezultati()
 {
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
-        (bool odigrano, int kolo, string firstTeam, string secondTeam, int rezultatFirstTeam, int rezultatSecondTeam) p = protivnici![i];
+        (bool odigrano, int kolo, string firstTeam, string secondTeam, int rezultatFirstTeam, int rezultatSecondTeam) trenutnaUtakmica = predodredeneUtakmice![i];
+        trenutnaUtakmica.odigrano = true;
+
         (int firstTeamGolovi, int secondTeamGolovi) = GenerateRandomResults();
-        p.odigrano = true;
-        p.rezultatFirstTeam = firstTeamGolovi;
-        p.rezultatSecondTeam = secondTeamGolovi;
-        protivnici[i] = p;
+        trenutnaUtakmica.rezultatFirstTeam = firstTeamGolovi;
+        trenutnaUtakmica.rezultatSecondTeam = secondTeamGolovi;
+        predodredeneUtakmice[i] = trenutnaUtakmica;
+
         if (firstTeamGolovi > secondTeamGolovi)
         {
-            (int b, int r) oldValues = bodoviOstali![p.firstTeam];
-            bodoviOstali![p.firstTeam] = (oldValues.b + 3, oldValues.r + (p.rezultatFirstTeam - p.rezultatSecondTeam));
+            (int b, int r) = bodoviEkipa![trenutnaUtakmica.firstTeam];
+            bodoviEkipa![trenutnaUtakmica.firstTeam] = (b + 3, r + (trenutnaUtakmica.rezultatFirstTeam - trenutnaUtakmica.rezultatSecondTeam));
         }
-        else if (p.rezultatFirstTeam < p.rezultatSecondTeam)
+        else if (trenutnaUtakmica.rezultatFirstTeam < trenutnaUtakmica.rezultatSecondTeam)
         {
-            (int b, int r) oldValues = bodoviOstali![p.secondTeam];
-            bodoviOstali![p.secondTeam] = (oldValues.b + 3, oldValues.r + (p.rezultatSecondTeam - p.rezultatFirstTeam));
+            (int b, int r) = bodoviEkipa![trenutnaUtakmica.secondTeam];
+            bodoviEkipa![trenutnaUtakmica.secondTeam] = (b + 3, r + (trenutnaUtakmica.rezultatSecondTeam - trenutnaUtakmica.rezultatFirstTeam));
         }
         else
         {
-            (int b, int r) oldValuesFirst = bodoviOstali![p.firstTeam];
-            (int b, int r) oldValuesSecond = bodoviOstali![p.secondTeam];
-            bodoviOstali![p.firstTeam] = (oldValuesFirst.b + 1, oldValuesFirst.r);
-            bodoviOstali![p.secondTeam] = (oldValuesSecond.b + 1, oldValuesSecond.r);
+            (int b1, int r1) = bodoviEkipa![trenutnaUtakmica.firstTeam];
+            (int b2, int r2) = bodoviEkipa![trenutnaUtakmica.secondTeam];
+            bodoviEkipa![trenutnaUtakmica.firstTeam] = (b1 + 1, r1);
+            bodoviEkipa![trenutnaUtakmica.secondTeam] = (b2 + 1, r2);
         }
     }
 }
@@ -284,12 +286,6 @@ void OdradiTrening()
 
 void OdigrajUtakmicu()
 {
-    if (playersInfo.Count < 20) // 26
-    {
-        Console.WriteLine("Nema dovoljno igrača!");
-        ReturnToIzbornik();
-    }
-
     CheckPlayers(gk!, 1, "GK");
     CheckPlayers(df!, 4, "DF");
     CheckPlayers(mf!, 3, "MF");
@@ -311,10 +307,10 @@ void OdigrajUtakmicu()
 
     (int golEkipa, int golProtivnici) golovi = GenerateRandomResults();
 
-    Dictionary<string, (string position, int rating)> strijelci = new Dictionary<string, (string position, int rating)>();
+    Dictionary<string, (string position, int rating)> strijelci = new();
     if (golovi.golEkipa > 0)
     {
-        Random randomInt = new Random();
+        Random randomInt = new();
         while (strijelci.Count < golovi.golEkipa)
         {
             int pozicijaStrijelca = randomInt.Next(0, fw!.Count - 1);
@@ -343,10 +339,10 @@ void OdigrajUtakmicu()
 
     ostaliRezultati();
     PrintLine();
-    Console.WriteLine($"{rezultat}\n\nOstali rezultati kola:\n");
-    Random randInt = new Random();
+    Console.WriteLine($"{rezultat}\n\nOstali rezultati trenutnog kola:\n");
+    Random randInt = new();
     int kolo = randInt.Next(1, 4);
-    foreach (var utakmica in protivnici!)
+    foreach (var utakmica in predodredeneUtakmice!)
     {
         if (utakmica.kolo == kolo)
         {
@@ -363,7 +359,6 @@ void Statistika()
     Console.WriteLine("1 - Ispis svih igrača");
     PrintLine();
 
-    //int choice;
     while (UnosIzbora("broj za izbor") != 1)
     {
         Console.WriteLine("Krivi unos!");
@@ -409,7 +404,7 @@ void Statistika()
                 ReturnToIzbornik();
                 break;
 
-            case 5: // po ratingu??                                                <--------------------  REFACTOR!!
+            case 5: // po ratingu??                                              
                 Console.Clear();
                 Console.WriteLine("Ispis igrača po ratingu:");
                 PrintLine();
@@ -421,7 +416,6 @@ void Statistika()
                     inputNum = UnosIzbora("broj ratinga [1 - 100]");
                 }
 
-                //var playersWithSelectedRating = playersInfo.Select()
                 foreach (var player in playersInfo.Keys)
                 {
                     if (playersInfo[player].rating == inputNum)
@@ -470,7 +464,7 @@ void Statistika()
                 Console.WriteLine("Ispis strijelaca i koliko golova imaju:\n\nIme\tGolovi");
                 PrintLine();
 
-                Random randomInt = new Random();
+                Random randomInt = new();
                 organisePlayers(fw!, "FW", false, 0);
                 foreach (var player in fw!)
                 {
@@ -490,9 +484,9 @@ void Statistika()
                 if (rezultatiEkipe!.Count > 0)
                 {
                     int j = 1;
-                    foreach (var result in rezultatiEkipe)
+                    foreach (var (rezEkipe, rezProtivnika) in rezultatiEkipe)
                     {
-                        Console.WriteLine($"{j}. rezultat: \t{result.rezEkipe}:{result.rezProtivnika}\n");
+                        Console.WriteLine($"{j}. rezultat: \t{rezEkipe}:{rezProtivnika}\n");
                         j++;
                     }
                 }
@@ -507,22 +501,15 @@ void Statistika()
                 Console.WriteLine("Ispis rezultata svih ekipa:");
                 PrintLine();
 
-                if (protivnici![0].odigrano is false)
+                if (predodredeneUtakmice![0].odigrano is false)
                 {
                     ostaliRezultati();
                 }
 
-                foreach (var rezultat in protivnici)
+                foreach (var (odigrano, kolo, fristTeam, secondTeam, rezultatFitstTeam, rezultatSecondTeam) in predodredeneUtakmice)
                 {
-                    Console.WriteLine($"{rezultat.kolo}. kolo.......{rezultat.fristTeam} - {rezultat.secondTeam}.......{rezultat.rezultatFitstTeam}:{rezultat.rezultatSecondTeam}\n");
+                    Console.WriteLine($"{kolo}. kolo.......{fristTeam} - {secondTeam}.......{rezultatFitstTeam}:{rezultatSecondTeam}\n");
                 }
-
-
-                /*
-                foreach (var ekipa in bodoviOstali!)
-                {
-                    Console.WriteLine($"{ekipa.Key}\tBodovi: {ekipa.Value}\n");
-                }*/
 
                 ReturnToIzbornik();
                 break;
@@ -532,11 +519,11 @@ void Statistika()
                 Console.WriteLine("Ispis tablice grupe:");
                 PrintLine();
 
-                if (protivnici![0].odigrano is false)
+                if (predodredeneUtakmice![0].odigrano is false)
                 {
                     ostaliRezultati();
                 }
-                var sortedBodovi = from ekipa in bodoviOstali orderby ekipa.Value.bodovi descending select ekipa;
+                var sortedBodovi = from ekipa in bodoviEkipa orderby ekipa.Value.bodovi descending select ekipa;
                 int i = 1;
                 foreach (var ekipa in sortedBodovi)
                 {
@@ -604,8 +591,7 @@ void KontrolaIgraca()
                         newPlayerPosition = Console.ReadLine();
                     }
                     newPlayerPosition = newPlayerPosition!.ToUpper();
-                    string[] pozicije = { "GK", "MF", "DF", "FW" };
-                    while (!pozicije.Contains(newPlayerPosition))
+                    while (!positions.Contains(newPlayerPosition))
                     {
                         Console.Write("\nUnesite ispravnu poziciju (GK, MF, DF ili FW):");
                         newPlayerPosition = Console.ReadLine();
